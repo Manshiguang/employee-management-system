@@ -4,4 +4,8 @@ node_modules
 *.log
 .vscode
 .idea
+README.md
+DEPLOYMENT_GUIDE.md
+deploy.sh
+template.xlsx
 
