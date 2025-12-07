@@ -1,7 +1,14 @@
 // Supabase配置
 const supabaseUrl = 'https://ynkekasnpxtnomswumuz.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlua2VrYXNucHh0bm9tc3d1bXV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg0NDUyMzQsImV4cCI6MjA0NDAyMTIzNH0.8vJ7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// 确保Supabase库已加载
+if (typeof supabase === 'undefined') {
+    console.error('Supabase库未加载，请检查CDN连接');
+    alert('Supabase库加载失败，请刷新页面重试');
+}
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 class EmployeeManager {
     constructor() {
@@ -113,7 +120,7 @@ class EmployeeManager {
 
     async loadEmployees() {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('employees')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -137,7 +144,7 @@ class EmployeeManager {
         try {
             if (this.currentEditId) {
                 // 更新员工
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('employees')
                     .update(employeeData)
                     .eq('id', this.currentEditId);
@@ -146,7 +153,7 @@ class EmployeeManager {
                 return data;
             } else {
                 // 添加新员工
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('employees')
                     .insert([employeeData])
                     .select();
@@ -203,63 +210,171 @@ class EmployeeManager {
         document.getElementById('uploadModal').style.display = 'none';
     }
 
-    async saveEmployee() {
-        const formData = new FormData(document.getElementById('employeeForm'));
-        const employeeData = {
-            name: formData.get('name') || document.getElementById('name').value,
-            department: formData.get('department') || document.getElementById('department').value,
-            supervisor: formData.get('supervisor') || document.getElementById('supervisor').value,
-            groupLeader: formData.get('groupLeader') || document.getElementById('groupLeader').value,
-            teamLeader: formData.get('teamLeader') || document.getElementById('teamLeader').value,
-            joinDate: formData.get('joinDate') || document.getElementById('joinDate').value,
-            leaveDate: formData.get('leaveDate') || document.getElementById('leaveDate').value,
-            idCard: formData.get('idCard') || document.getElementById('idCard').value,
-            oaAccount: formData.get('oaAccount') || document.getElementById('oaAccount').value,
-            status: formData.get('status') || document.getElementById('status').value,
-            performance: parseFloat(formData.get('performance') || document.getElementById('performance').value) || 0,
-            phone: formData.get('phone') || document.getElementById('phone').value
+    /**
+     * 获取表单数据并验证
+     */
+    getFormData() {
+        const form = document.getElementById('employeeForm');
+        const formData = new FormData(form);
+        
+        return {
+            name: this.getInputValue('name'),
+            department: this.getInputValue('department'),
+            supervisor: this.getInputValue('supervisor'),
+            groupLeader: this.getInputValue('groupLeader'),
+            teamLeader: this.getInputValue('teamLeader'),
+            joinDate: this.getInputValue('joinDate'),
+            leaveDate: this.getInputValue('leaveDate'),
+            idCard: this.getInputValue('idCard'),
+            oaAccount: this.getInputValue('oaAccount'),
+            status: this.getInputValue('status'),
+            performance: parseFloat(this.getInputValue('performance')) || 0,
+            phone: this.getInputValue('phone')
         };
+    }
 
-        // 验证数据
-        if (!this.validateEmployee(employeeData)) {
-            return;
-        }
+    /**
+     * 获取输入框值
+     */
+    getInputValue(id) {
+        const element = document.getElementById(id);
+        return element ? element.value.trim() : '';
+    }
 
+    /**
+     * 保存员工信息
+     */
+    async saveEmployee() {
+        // 显示加载状态
+        this.setFormLoading(true);
+        
         try {
+            const employeeData = this.getFormData();
+
+            // 验证数据
+            const validationResult = this.validateEmployee(employeeData);
+            if (!validationResult.isValid) {
+                this.showMessage(validationResult.message, 'error');
+                return;
+            }
+
+            // 保存到Supabase
             const savedEmployee = await this.saveEmployeeToSupabase(employeeData);
             
             if (savedEmployee) {
-                // 重新加载数据
-                await this.loadEmployees();
-                this.renderTable();
+                // 重新加载并更新界面
+                await this.refreshEmployeeData();
                 this.hideModal();
                 
-                // 显示成功消息
-                this.showMessage(`${this.currentEditId ? '更新' : '添加'}员工成功！`, 'success');
+                const action = this.currentEditId ? '更新' : '添加';
+                this.showMessage(`${action}员工成功！`, 'success');
             }
         } catch (error) {
-            console.error('Error saving employee:', error);
-            this.showMessage(`${this.currentEditId ? '更新' : '添加'}员工失败: ${error.message}`, 'error');
+            console.error('保存员工失败:', error);
+            this.handleSaveError(error);
+        } finally {
+            // 移除加载状态
+            this.setFormLoading(false);
         }
     }
 
+    /**
+     * 设置表单加载状态
+     */
+    setFormLoading(loading) {
+        const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
+        const cancelBtn = document.getElementById('cancelBtn');
+        
+        if (loading) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> 保存中...';
+            cancelBtn.disabled = true;
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '保存';
+            cancelBtn.disabled = false;
+        }
+    }
+
+    /**
+     * 刷新员工数据
+     */
+    async refreshEmployeeData() {
+        await this.loadEmployees();
+        this.renderTable();
+    }
+
+    /**
+     * 处理保存错误
+     */
+    handleSaveError(error) {
+        let errorMessage = '操作失败，请重试';
+        
+        if (error.message.includes('duplicate')) {
+            errorMessage = '员工信息已存在（身份证号或电话重复）';
+        } else if (error.message.includes('network')) {
+            errorMessage = '网络连接失败，请检查网络后重试';
+        } else if (error.message.includes('auth')) {
+            errorMessage = '认证失败，请刷新页面重试';
+        }
+        
+        this.showMessage(errorMessage, 'error');
+    }
+
+    /**
+     * 增强的数据验证
+     */
     validateEmployee(data) {
         if (!data.name.trim()) {
-            this.showMessage('请输入员工姓名', 'error');
-            return false;
+            return { isValid: false, message: '请输入员工姓名' };
         }
+        
         if (!data.department.trim()) {
-            this.showMessage('请输入部门', 'error');
-            return false;
+            return { isValid: false, message: '请输入部门名称' };
         }
-        
-        // 验证身份证号格式（如果提供）
+
+        // 姓名长度验证
+        if (data.name.length > 50) {
+            return { isValid: false, message: '姓名长度不能超过50个字符' };
+        }
+
+        // 电话格式验证
+        if (data.phone && !this.isValidPhone(data.phone)) {
+            return { isValid: false, message: '请输入有效的手机号码' };
+        }
+
+        // 身份证号格式验证
         if (data.idCard && !this.isValidIdCard(data.idCard)) {
-            this.showMessage('请输入有效的身份证号', 'error');
-            return false;
+            return { isValid: false, message: '请输入有效的身份证号码' };
         }
-        
-        return true;
+
+        // 邮箱格式验证（如果添加邮箱字段）
+        if (data.email && !this.isValidEmail(data.email)) {
+            return { isValid: false, message: '请输入有效的邮箱地址' };
+        }
+
+        // 业绩数值验证
+        if (data.performance < 0) {
+            return { isValid: false, message: '业绩不能为负数' };
+        }
+
+        return { isValid: true, message: '' };
+    }
+
+    /**
+     * 验证手机号码格式
+     */
+    isValidPhone(phone) {
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        return phoneRegex.test(phone);
+    }
+
+    /**
+     * 验证邮箱格式
+     */
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     }
 
     isValidIdCard(idCard) {
@@ -313,7 +428,7 @@ class EmployeeManager {
     async deleteEmployee(id) {
         if (confirm('确定要删除这个员工吗？此操作不可撤销。')) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('employees')
                     .delete()
                     .eq('id', id);
@@ -346,7 +461,7 @@ class EmployeeManager {
 
         if (confirm(`确定要删除选中的 ${selectedIds.length} 名员工吗？此操作不可撤销。`)) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('employees')
                     .delete()
                     .in('id', selectedIds);
@@ -574,7 +689,7 @@ class EmployeeManager {
 
         try {
             // 批量插入到Supabase
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('employees')
                 .insert(validEmployees)
                 .select();

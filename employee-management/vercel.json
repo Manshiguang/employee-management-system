@@ -1,20 +1,8 @@
 {
-  "version": 2,
-  "name": "employee-management-system",
-  "builds": [
+  "rewrites": [
     {
-      "src": "index.html",
-      "use": "@vercel/static"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
-  "env": {
-    "SUPABASE_URL": "https://ynkekasnpxtnomswumuz.supabase.co",
-    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlua2VrYXNucHh0bm9tc3d1bXV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg0NDUyMzQsImV4cCI6MjA0NDAyMTIzNH0.8vJ7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7v7"
-  }
+  ]
 }
