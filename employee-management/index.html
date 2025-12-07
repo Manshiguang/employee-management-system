@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>员工信息管理系统</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>员工信息管理系统</h1>
+        </header>
+
+        <div class="controls">
+            <button id="addBtn" class="btn btn-primary">添加员工</button>
+            <button id="uploadBtn" class="btn btn-secondary">批量上传</button>
+            <button id="exportBtn" class="btn btn-success">导出数据</button>
+            <button id="batchDeleteBtn" class="btn btn-danger">批量删除</button>
+            <input type="text" id="searchInput" placeholder="搜索员工...">
+            <button id="searchBtn" class="btn btn-info">搜索</button>
+        </div>
+
+        <!-- 批量上传悬浮窗口 -->
+        <div class="modal" id="uploadModal">
+            <div class="modal-content">
+                <span class="close" id="closeUploadModal">&times;</span>
+                <h2>批量上传员工数据</h2>
+                <div class="upload-options">
+                    <button id="downloadTemplateBtn" class="btn btn-warning">下载模板</button>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                    <button id="selectFileBtn" class="btn btn-primary">选择文件</button>
+                </div>
+                <div class="upload-instructions">
+                    <h3>使用说明：</h3>
+                    <ol>
+                        <li>点击"下载模板"获取标准格式文件</li>
+                        <li>按照模板格式填写员工数据</li>
+                        <li>点击"选择文件"上传填写好的文件</li>
+                        <li>系统将自动解析并导入数据</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="employeeModal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modalTitle">添加员工</h2>
+                <form id="employeeForm">
+                    <input type="hidden" id="employeeId">
+                    <div class="form-group">
+                        <label for="name">姓名:</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="department">部门:</label>
+                        <input type="text" id="department" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="supervisor">主管:</label>
+                        <input type="text" id="supervisor">
+                    </div>
+                    <div class="form-group">
+                        <label for="groupLeader">大组组长:</label>
+                        <input type="text" id="groupLeader">
+                    </div>
+                    <div class="form-group">
+                        <label for="teamLeader">组长:</label>
+                        <input type="text" id="teamLeader">
+                    </div>
+                    <div class="form-group">
+                        <label for="joinDate">入职时间:</label>
+                        <input type="date" id="joinDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="leaveDate">离职时间:</label>
+                        <input type="date" id="leaveDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="idCard">身份证号:</label>
+                        <input type="text" id="idCard">
+                    </div>
+                    <div class="form-group">
+                        <label for="oaAccount">OA账号:</label>
+                        <input type="text" id="oaAccount">
+                    </div>
+                    <div class="form-group">
+                        <label for="status">在职状态:</label>
+                        <select id="status">
+                            <option value="在职">在职</option>
+                            <option value="离职">离职</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="performance">业绩:</label>
+                        <input type="number" id="performance" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">电话:</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="employeeTable">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll"></th>
+                        <th>ID</th>
+                        <th>姓名</th>
+                        <th>部门</th>
+                        <th>主管</th>
+                        <th>大组组长</th>
+                        <th>组长</th>
+                        <th>入职时间</th>
+                        <th>离职时间</th>
+                        <th>身份证号</th>
+                        <th>OA账号</th>
+                        <th>在职状态</th>
+                        <th>业绩</th>
+                        <th>电话</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                    <!-- 员工数据将在这里动态生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
