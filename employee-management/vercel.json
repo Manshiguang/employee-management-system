@@ -1,7 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "echo 'Static site deployed'",
+  "framework": null,
+  "buildCommand": null,
   "outputDirectory": ".",
+  "installCommand": null,
   "rewrites": [
     {
       "source": "/(.*)",
