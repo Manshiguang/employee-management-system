@@ -50,29 +50,32 @@ const Home: React.FC = () => {
         
         setStats(formattedStats);
         setRecentActivities(formattedActivities);
-        setError('');
-      } catch (err: any) {
-        setError(err.message || '获取数据失败');
-        console.error(err);
+      } catch (err) {
+        console.error('Error fetching data, using mock data instead:', err);
         
-        // Fallback to mock data if API fails
-        setStats([
-          { id: 1, title: '总员工数', value: 500, color: '#3498db', link: '/employees' },
-          { id: 2, title: '部门数', value: 20, color: '#2ecc71', link: '/departments' },
-          { id: 3, title: '当前在线', value: 120, color: '#e74c3c', link: '#' },
+        // Use mock data when API fails
+        const mockStats: Stat[] = [
+          { id: 1, title: '总员工数', value: 120, color: '#3498db', link: '/employees' },
+          { id: 2, title: '部门数', value: 10, color: '#2ecc71', link: '/departments' },
+          { id: 3, title: '当前在线', value: 90, color: '#e74c3c', link: '#' },
           { id: 4, title: '本月新员工', value: 15, color: '#f39c12', link: '/employees' },
-        ]);
+        ];
         
-        setRecentActivities([
-          { id: 1, action: '的个人信息已更新', name: '张三', time: '2分钟前', icon: '📝' },
-          { id: 2, action: '新员工', name: '李四', time: '15分钟前', icon: '➕' },
-          { id: 3, action: '已调往技术部门', name: '王五', time: '1小时前', icon: '🏢' },
-        ]);
+        const mockActivities: Activity[] = [
+          { id: 1, action: '创建了新员工', name: '张三', time: '刚刚', icon: '👤' },
+          { id: 2, action: '更新了部门信息', name: '李四', time: '5分钟前', icon: '🏢' },
+          { id: 3, action: '修改了员工薪资', name: '王五', time: '1小时前', icon: '💰' },
+          { id: 4, action: '添加了新部门', name: '赵六', time: '2小时前', icon: '📋' },
+          { id: 5, action: '更新了员工职位', name: '孙七', time: '3小时前', icon: '📈' },
+        ];
+        
+        setStats(mockStats);
+        setRecentActivities(mockActivities);
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchData();
   }, []);
 

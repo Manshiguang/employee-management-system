@@ -21,6 +21,9 @@ const EmployeeList: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Fetch employees from API
   useEffect(() => {
@@ -84,6 +87,51 @@ const EmployeeList: React.FC = () => {
     }
   };
 
+  // Handle file selection for import
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      setError('');
+    }
+  };
+
+  // Handle import
+  const handleImport = async () => {
+    if (!selectedFile) {
+      setError('请先选择要导入的CSV文件');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      setError('');
+      const result = await employeesApi.importCSV(selectedFile);
+      
+      // Refresh employee list
+      const updatedEmployees = await employeesApi.getAll();
+      setEmployees(updatedEmployees);
+      
+      setShowImportModal(false);
+      alert(`成功导入 ${result.successCount || 0} 条员工数据，失败 ${result.failureCount || 0} 条`);
+    } catch (err: any) {
+      setError(err.message || '导入失败，请检查文件格式后重试');
+      console.error(err);
+    } finally {
+      setImporting(false);
+      setSelectedFile(null);
+    }
+  };
+
+  // Handle export
+  const handleExport = async () => {
+    try {
+      await employeesApi.exportCSV();
+    } catch (err: any) {
+      alert(err.message || '导出失败，请稍后重试');
+      console.error(err);
+    }
+  };
+
   return (
     <div className="employee-list">
       <div className="page-header">
@@ -109,6 +157,20 @@ const EmployeeList: React.FC = () => {
           <Link to="/employees/new" className="btn btn-primary">
             添加员工
           </Link>
+          <button
+            onClick={handleExport}
+            className="btn btn-secondary"
+            style={{ marginLeft: '10px' }}
+          >
+            导出CSV
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="btn btn-success"
+            style={{ marginLeft: '10px' }}
+          >
+            导入CSV
+          </button>
         </div>
       </div>
 
@@ -189,6 +251,61 @@ const EmployeeList: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>导入员工数据</h3>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="modal-close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="import-instructions">
+                <h4>导入说明：</h4>
+                <ul>
+                  <li>请确保CSV文件包含以下字段：姓名、邮箱、电话、部门、职位、入职日期、状态</li>
+                  <li>状态字段值只能是：active 或 inactive</li>
+                  <li>入职日期格式：YYYY-MM-DD</li>
+                </ul>
+              </div>
+              
+              <div className="file-upload">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  disabled={importing}
+                  className="file-input"
+                />
+                {importing && <div className="loading">导入中...</div>}
+              </div>
+              
+              {error && <div className="error-message">{error}</div>}
+            </div>
+            <div className="modal-footer">
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="btn btn-secondary"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleImport}
+                className="btn btn-primary"
+                disabled={importing}
+              >
+                {importing ? '导入中...' : '开始导入'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

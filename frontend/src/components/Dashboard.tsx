@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { authApi } from '../services/api';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+
+  // Check if user is logged in
+  useEffect(() => {
+    const user = authApi.getCurrentUser();
+    if (!user) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

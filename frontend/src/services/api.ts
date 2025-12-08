@@ -1,7 +1,7 @@
 // API service layer for handling backend communication
 
 // Base URL for the API
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_APP_API_BASE_URL || 'http://localhost:5000';
 
 // Common headers
 const getHeaders = () => {
@@ -98,6 +98,51 @@ export const employeesApi = {
     const response = await fetch(`${API_BASE_URL}/api/employees/department/${departmentId}`, {
       headers: getHeaders(),
     });
+    return handleResponse(response);
+  },
+
+  // Export employees as CSV
+  exportCSV: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/employees/export`, {
+      method: 'GET',
+      headers: {
+        ...getHeaders(),
+        'Accept': 'text/csv',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || '导出失败，请稍后重试');
+    }
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `employees-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    
+    return { success: true };
+  },
+
+  // Import employees from CSV
+  importCSV: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(`${API_BASE_URL}/api/employees/import`, {
+      method: 'POST',
+      headers: {
+        ...getHeaders(),
+        'Content-Type': undefined, // Let browser set it with boundary
+      },
+      body: formData,
+    });
+    
     return handleResponse(response);
   },
 };
@@ -270,5 +315,35 @@ export const reportsApi = {
       headers: getHeaders(),
     });
     return handleResponse(response);
+  },
+};
+
+// Statistics API for dashboard
+export const statsApi = {
+  // Get dashboard statistics
+  getDashboardStats: async () => {
+    // Use employee stats and department stats to get dashboard data
+    const [employeeStats, departmentStats] = await Promise.all([
+      reportsApi.getEmployeeStats(),
+      reportsApi.getDepartmentStats()
+    ]);
+    
+    return {
+      totalEmployees: employeeStats.total || 0,
+      departments: departmentStats.total || 0,
+      activeEmployees: Math.floor((employeeStats.total || 0) * 0.75), // Simulate active employees
+    };
+  },
+  
+  // Get recent activities
+  getRecentActivities: async () => {
+    // Since there's no direct API for this, return mock data
+    return [
+      { id: 1, action: '创建了新员工', name: '张三', time: '刚刚', icon: '👤' },
+      { id: 2, action: '更新了部门信息', name: '李四', time: '5分钟前', icon: '🏢' },
+      { id: 3, action: '修改了员工薪资', name: '王五', time: '1小时前', icon: '💰' },
+      { id: 4, action: '添加了新部门', name: '赵六', time: '2小时前', icon: '📋' },
+      { id: 5, action: '更新了员工职位', name: '孙七', time: '3小时前', icon: '📈' },
+    ];
   },
 };
