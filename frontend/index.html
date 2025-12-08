@@ -119,21 +119,34 @@
     // Simple Dashboard Component
     function Dashboard() {
       const [user, setUser] = React.useState(null);
+      const [error, setError] = React.useState('');
 
       React.useEffect(() => {
         const userData = localStorage.getItem('user');
         if (userData) {
           setUser(JSON.parse(userData));
         } else {
-          window.location.href = '/login';
+          setError('Please login to access the dashboard.');
         }
       }, []);
 
       const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        // For local development, we'll just refresh the page
+        // On server, we would redirect to /login
+        window.location.reload();
       };
+
+      if (error) {
+        return (
+          <div className="login-form">
+            <h2>Access Denied</h2>
+            <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>
+            <button onClick={() => window.location.reload()}>Go to Login</button>
+          </div>
+        );
+      }
 
       if (!user) {
         return <div>Loading...</div>;
@@ -151,10 +164,17 @@
     // Simple Router
     function App() {
       const path = window.location.pathname;
+      
+      // For local development on file system
+      const isLocalFile = window.location.protocol === 'file:';
+      
+      // In local file system, always show login first
+      // On server, use normal routing
+      const showLogin = isLocalFile || path === '/login';
 
       return (
         <div className="app-container">
-          {path === '/login' ? <Login /> : <Dashboard />}
+          {showLogin ? <Login /> : <Dashboard />}
         </div>
       );
     }
